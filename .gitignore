@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+data/panels/
+data/state/
+data/queue/
+data/*.log
+*.parquet
