@@ -9,7 +9,6 @@ universe:
   indices:
     - {proxy: "^GSPC",     exness: "US500m",   region: "US"}
     - {proxy: "^NDX",      exness: "USTECm",   region: "US"}
-    - {proxy: "^DJI",      exness: "US30m",    region: "US"}
     - {proxy: "^GDAXI",    exness: "DE30m",    region: "EU"}
     - {proxy: "^FTSE",     exness: "UK100m",   region: "EU"}
     - {proxy: "^FCHI",     exness: "FR40m",    region: "EU"}
@@ -30,12 +29,11 @@ universe:
     - {proxy: "GBPUSD=X",  exness: "GBPUSDm"}
     - {proxy: "USDJPY=X",  exness: "USDJPYm"}
     - {proxy: "AUDUSD=X",  exness: "AUDUSDm"}
-  commodities:
-    - {proxy: "GC=F",      broker: "XAUUSD",   note: "gold — precious metal / partial crisis hedge"}
-    - {proxy: "HG=F",      broker: "COPPER",   note: "copper — industrial metal (growth-sensitive)"}
-    - {proxy: "BZ=F",      broker: "BRENT",    note: "Brent crude — energy (avoids WTI's 2020 negative-print)"}
-    - {proxy: "NG=F",      broker: "NATGAS",   note: "natural gas — strong trender, weak correlation"}
-    - {proxy: "ZC=F",      broker: "CORN",     note: "corn — agriculture diversifier"}
+  commodities:   # traded as US-hours ETF CFDs on IC Markets; proxy = the ETF itself so backtest = reality
+    - {proxy: "GC=F",      broker: "XAUUSD",   note: "gold (native metal CFD)"}
+    - {proxy: "BNO",       broker: "BNO",      note: "Brent crude — US Brent Oil Fund ETF"}
+    - {proxy: "UNG",       broker: "UNG",      note: "natural gas ETF"}
+    - {proxy: "CORN",      broker: "CORN",     note: "corn ETF — agriculture diversifier"}
   crypto:
     - {proxy: "BTC-USD",   exness: "BTCUSDm",  bloc: "crypto"}
     - {proxy: "ETH-USD",   exness: "ETHUSDm",  bloc: "crypto"}
@@ -62,35 +60,35 @@ rebalance_days: 21          # monthly rebalance cadence
 # skips any unmapped instrument and warns.
 broker: "IC Markets"
 broker_symbols:
-  "^GSPC": "US500"
-  "^NDX": "USTEC"
-  "^DJI": "US30"
-  "^GDAXI": "DE40"
+  # CONFIRMED from the IC Markets Market Watch dump (2026-07-15). Native index CFDs + gold
+  # metal + FX; bonds/energy/ag/crypto as US-hours ETF CFDs. Dow + copper dropped (no CFD).
+  "^GSPC": "SP500m"
+  "^NDX": "ND100m"
+  "^GDAXI": "GDAXIm"
   "^FTSE": "UK100"
-  "^FCHI": "FRA40"
-  "^STOXX50E": "EU50"
-  "^N225": "JP225"
-  "^HSI": "HK50"
+  "^FCHI": "FCHI40"
+  "^STOXX50E": "STOX50"
+  "^N225": "NI225"
+  "^HSI": "HSI50"
   "^AXJO": "AUS200"
-  "^NSEI": "INDIA50"
-  "IEF": "UST10Y"
-  "TLT": "UST30Y"
-  "BWX": "BUND"
+  "^NSEI": "INDA"
+  "IEF": "IEF"
+  "TLT": "TLT"
+  "BWX": "BWX"
   "EURUSD=X": "EURUSD"
   "GBPUSD=X": "GBPUSD"
   "USDJPY=X": "USDJPY"
   "AUDUSD=X": "AUDUSD"
   "GC=F": "XAUUSD"
-  "HG=F": "COPPER"
-  "BZ=F": "XBRUSD"
-  "NG=F": "XNGUSD"
-  "ZC=F": "CORN"
-  "BTC-USD": "BTCUSD"
-  "ETH-USD": "ETHUSD"
+  "BNO": "BNO"
+  "UNG": "UNG"
+  "CORN": "CORN"
+  "BTC-USD": "BTC"
+  "ETH-USD": "ETH"
 
 execution:
-  # PLACEHOLDER — self-contained v2 folder so the daily run is harmless before the broker
-  # is live. Point this at the IC Markets MT5 "MQL5/Files" folder once the demo is set up.
-  queue_dir: "/Users/izuchukwuogbodo/Desktop/Eshu_Forex_Trader/data/queue"
-  demo_balance_fallback: 10000
+  # The MT5 terminal's MQL5/Files folder — where VertexPlacerV2 reads the .reb book + risk
+  # directive. Shared with v1's files, but names (vxq_v2_*) and magic (8800333) are distinct.
+  queue_dir: "/Users/izuchukwuogbodo/Library/Application Support/net.metaquotes.wine.metatrader5/drive_c/Program Files/MetaTrader 5/MQL5/Files"
+  demo_balance_fallback: 100000
   magic: 8800333        # isolated from v1 (8800111/8800222) — v2 can never touch v1 positions

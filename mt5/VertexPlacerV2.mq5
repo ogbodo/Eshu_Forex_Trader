@@ -19,7 +19,8 @@
 #include <Trade/Trade.mqh>
 
 input long   InpMagic           = 8800333;   // v2 magic (never touches v1's 8800111/8800222)
-input bool   InpDemoOnly        = true;      // refuse to trade on a REAL account
+input bool   InpDemoOnly        = false;     // refuse if account trade-mode == REAL (UNRELIABLE on IC/Exness demos)
+input long   InpAllowedLogin     = 0;         // ROBUST guard: if >0, ONLY trade this exact login; refuse any other
 input int    InpPollSeconds     = 10;        // reconcile cadence
 input bool   InpRebalanceDryRun = true;      // TRUE = log intended lots, place NOTHING (verify first!)
 input double InpNoTradeBand     = 0.20;      // skip a symbol if current lots within this fraction of target
@@ -34,6 +35,12 @@ CTrade trade;
 
 int OnInit()
 {
+   if(InpAllowedLogin > 0 && (long)AccountInfoInteger(ACCOUNT_LOGIN) != InpAllowedLogin)
+   {
+      PrintFormat("VertexPlacerV2: account %I64d is not the allowed login %I64d -> refusing to trade.",
+                  AccountInfoInteger(ACCOUNT_LOGIN), InpAllowedLogin);
+      return(INIT_FAILED);
+   }
    if(InpDemoOnly && (ENUM_ACCOUNT_TRADE_MODE)AccountInfoInteger(ACCOUNT_TRADE_MODE) == ACCOUNT_TRADE_MODE_REAL)
    {
       Print("VertexPlacerV2: REAL account + InpDemoOnly -> refusing to trade.");
