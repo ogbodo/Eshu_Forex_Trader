@@ -6,4 +6,5 @@ data/panels/
 data/state/
 data/queue/
 data/*.log
+data/*.jsonl
 *.parquet

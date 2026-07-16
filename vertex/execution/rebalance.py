@@ -150,9 +150,13 @@ def compute(close, cfg, equity, state, login=None):
     directive = "FLATTEN" if killed else round(gross, 3)
     new_state = {"peak_equity": peak, "killed": killed, "cooldown": cooldown,
                  "cooldown_date": state.get("cooldown_date"), "login": state.get("login")}
+    # signed exposure fraction per proxy AFTER the risk dial — what the book should
+    # actually hold; the tracking loop uses yesterday's value to compute expected returns
+    target_exposure = {proxy: round(float(val) * gross, 5) for proxy, val in raw.items()
+                       if abs(float(val)) > 1e-9}
     diag = {"equity": equity, "realized_vol": realized, "vt": vt, "stress": stress,
             "regime_mult": regime_mult, "dd": dd, "dd_mult": dd_mult, "gross": gross,
-            "unmapped": unmapped, "stale_dropped": stale}
+            "unmapped": unmapped, "stale_dropped": stale, "target_exposure": target_exposure}
     return notionals, directive, new_state, diag
 
 

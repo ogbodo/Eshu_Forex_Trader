@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from vertex.config import load_config
 from vertex.data import panel
 from vertex.execution import rebalance
-from vertex import notify
+from vertex import notify, tracking
 
 
 def _clear_old_rebs(qdir):
@@ -72,9 +72,35 @@ def main():
             notify.daily_report_text(close.index[-1].date(), equity, directive, diag, notionals, is_rebal_day)
         ) else "send FAILED"
 
+    # ── Phase-4 learning loop ─────────────────────────────────────────────
+    # (a) journal today's row (equity + model exposure + expected-vs-realized)
+    try:
+        tracking.snapshot(cfg, close, diag, equity, login, directive)
+    except Exception as e:
+        print(f"  tracking snapshot failed (non-fatal): {e}")
+    # (b) Mondays: live-vs-model report + drift alarms to Telegram
+    track_note = ""
+    if is_rebal_day and sec.get("telegram_token"):
+        try:
+            text, alarms = tracking.weekly_report(cfg)
+            notify.send_message(sec["telegram_token"], sec.get("telegram_chat_id"), text)
+            track_note = f" | tracking={'ALARMS:' + str(len(alarms)) if alarms else 'ok'}"
+        except Exception as e:
+            track_note = f" | tracking-failed:{e}"
+    # (c) quarterly (Jan/Apr/Jul/Oct 1st): full re-validation of the rules on fresh data
+    now = datetime.now()
+    if now.day == 1 and now.month in (1, 4, 7, 10):
+        try:
+            import subprocess, sys as _sys
+            subprocess.Popen([_sys.executable, os.path.join(os.path.dirname(__file__), "revalidate.py"),
+                              "--telegram"])
+            track_note += " | quarterly-revalidation-launched"
+        except Exception:
+            pass
+
     kind = "FULL REBALANCE (.reb + directive)" if is_rebal_day else "risk directive only"
     print(f"[{stamp}] panel {src} | {kind} | equity ${equity:,.0f} | "
-          f"gross={gross_val:.3f} directive={directive} | {len(notionals)} targets | telegram={tg}"
+          f"gross={gross_val:.3f} directive={directive} | {len(notionals)} targets | telegram={tg}{track_note}"
           + (f" | UNMAPPED {diag['unmapped']}" if diag["unmapped"] else ""))
 
 

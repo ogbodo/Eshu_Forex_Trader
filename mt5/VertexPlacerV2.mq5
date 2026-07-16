@@ -29,6 +29,7 @@ input double InpEquityFloor     = 0.0;       // local last-resort: flatten all i
 
 string RISK       = "vxq_v2_risk_state.txt";
 string ACCT       = "vxq_v2_account.json";
+string FILLS      = "vxq_v2_fills.csv";
 string REB_PREFIX = "vxq_v2_rebalance_";
 
 CTrade trade;
@@ -268,6 +269,30 @@ void CloseAll(string why)
       if(InpRebalanceDryRun) { PrintFormat("REBAL(DRY) close-all (%s): %s", why, PositionGetString(POSITION_SYMBOL)); continue; }
       trade.PositionClose(tk);
    }
+}
+
+//--- fills journal: append every deal of OUR magic to vxq_v2_fills.csv (cost truth for
+//    the learning loop — profit, swap, commission actually paid). Fail-soft.
+void OnTradeTransaction(const MqlTradeTransaction &trans, const MqlTradeRequest &request, const MqlTradeResult &result)
+{
+   if(trans.type != TRADE_TRANSACTION_DEAL_ADD) return;
+   if(!HistoryDealSelect(trans.deal)) return;
+   if((long)HistoryDealGetInteger(trans.deal, DEAL_MAGIC) != InpMagic) return;
+   int f = FileOpen(FILLS, FILE_READ|FILE_WRITE|FILE_TXT|FILE_ANSI);
+   if(f == INVALID_HANDLE) return;
+   FileSeek(f, 0, SEEK_END);
+   string side  = (HistoryDealGetInteger(trans.deal, DEAL_TYPE) == DEAL_TYPE_BUY) ? "buy" : "sell";
+   string entry = (HistoryDealGetInteger(trans.deal, DEAL_ENTRY) == DEAL_ENTRY_IN) ? "in" : "out";
+   FileWriteString(f, StringFormat("%I64d,%I64d,%s,%s,%s,%.2f,%.2f,%.2f,%.2f,%I64d\n",
+      (long)HistoryDealGetInteger(trans.deal, DEAL_TIME),
+      AccountInfoInteger(ACCOUNT_LOGIN),
+      HistoryDealGetString(trans.deal, DEAL_SYMBOL), side, entry,
+      HistoryDealGetDouble(trans.deal, DEAL_VOLUME),
+      HistoryDealGetDouble(trans.deal, DEAL_PROFIT),
+      HistoryDealGetDouble(trans.deal, DEAL_SWAP),
+      HistoryDealGetDouble(trans.deal, DEAL_COMMISSION),
+      (long)trans.deal));
+   FileClose(f);
 }
 
 //--- publish account state (+ heartbeat) so Python can size + detect a dead EA
