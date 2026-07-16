@@ -35,5 +35,10 @@ def load_config(root=None):
         "telegram_chat_id": os.environ.get("TELEGRAM_CHAT_ID", ""),
         "groq_api_key": os.environ.get("GROQ_API_KEY", ""),
     }
+    # Per-machine override (set in .env): lets the SAME config.yaml run on the Mac and on
+    # a Windows VPS, where the MT5 Files folder lives at a different path.
+    qd = os.environ.get("QUEUE_DIR")
+    if qd:
+        cfg.setdefault("execution", {})["queue_dir"] = qd
     cfg["_root"] = root
     return cfg
