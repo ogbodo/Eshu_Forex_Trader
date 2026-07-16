@@ -96,7 +96,22 @@ def save_panel(cfg, close, version=None):
             json.dump({"last_real": meta}, f)
     with open(os.path.join(d, "LATEST"), "w") as f:
         f.write(version)
+    _prune_old(d, keep=14)   # daily builds accumulate ~1GB/yr — untenable on a 10GB VPS disk
     return path, version
+
+
+def _prune_old(d, keep=14):
+    """Keep only the newest `keep` panel versions (plus meta); delete the rest."""
+    try:
+        versions = sorted({f[len("panel_"):].split("_")[0].split(".")[0]
+                           for f in os.listdir(d) if f.startswith("panel_")})
+        for v in versions[:-keep]:
+            for suffix in (f"panel_{v}.csv", f"panel_{v}_meta.json"):
+                p = os.path.join(d, suffix)
+                if os.path.exists(p):
+                    os.remove(p)
+    except Exception:
+        pass
 
 
 def load_meta(cfg, version="latest"):
